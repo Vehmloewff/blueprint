@@ -1,11 +1,7 @@
-import { pascalCase, snakeCase } from 'change-case'
+import { pascalCase, camelCase } from 'change-case'
 import type { Generator } from './generator'
 import type { Language } from './language'
 import type { EnumBody, StructBody, TypeDef } from './type_def'
-
-function id(text: string) {
-	return text
-}
 
 export class Typescript implements Language {
 	generateEnum(generator: Generator, name: string, e: EnumBody): void {
@@ -15,7 +11,7 @@ export class Typescript implements Language {
 
 		if (isTagged) {
 			for (const [name, variant] of Object.entries(e.variants)) {
-				this.generateStruct(generator, `${name}_${variant}`, {
+				this.generateStruct(generator, variantName(name), {
 					description: variant.description,
 					fields: variant.fields ?? {},
 				})
@@ -47,17 +43,25 @@ export class Typescript implements Language {
 				this.#generateDocComment(generator, variant.description)
 
 				if (isTagged) {
-					generator.pushInTrailingComma(`${snakeCase(name)}(info: ${variantName(name)}): ${enumName} `, generator => {
+					generator.pushInTrailingComma(`${camelCase(name)}(info: ${variantName(name)}): ${enumName} `, generator => {
 						generator.pushLine(`return { ${name}: info }`)
 					})
 				} else {
-					generator.pushLine(`${snakeCase(name)}: '${name}',`)
+					generator.pushLine(`${camelCase(name)}: '${name}',`)
 				}
 			}
 		})
 	}
 
-	generateStruct(generator: Generator, name: string, struct: StructBody) {}
+	generateStruct(generator: Generator, name: string, struct: StructBody) {
+		this.#generateDocComment(generator, struct.description)
+		generator.pushIn(`export type ${name} = `, generator => {
+			for (const [name, field] of Object.entries(struct.fields)) {
+				this.#generateDocComment(generator, field.description)
+				generator.pushLine(`${name}: ${this.#buildType(field.type)},`)
+			}
+		})
+	}
 
 	#buildType(type: TypeDef): string {
 		if (type.kind === 'string') return 'string'

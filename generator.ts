@@ -28,7 +28,7 @@ export class Generator {
 	}
 
 	pushIn(text: string, indent: (generator: Generator) => void, trailing: string = '') {
-		this.#builder.add('\t'.repeat(this.#indentLevel) + text + '{')
+		this.#builder.add('\t'.repeat(this.#indentLevel) + text + '{\n')
 		indent(new Generator(this.#builder, this.#indentLevel + 1))
 		this.#builder.add('\t'.repeat(this.#indentLevel) + `}\n`)
 	}

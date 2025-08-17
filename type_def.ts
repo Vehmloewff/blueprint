@@ -8,7 +8,7 @@ export type StringDef = { kind: 'string' }
 export type BooleanDef = { kind: 'boolean' }
 export type ListDef = { kind: 'list'; of: TypeDef }
 
-export type StructField = TypeDef & { description: string; required?: boolean }
+export type StructField = { description: string; type: TypeDef; required?: boolean }
 export type EnumVariant = { description: string; fields?: StructFields }
 export type StructFields = Record<string, StructField>
 
