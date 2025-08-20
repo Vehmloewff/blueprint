@@ -1,12 +1,16 @@
 {
-  "name": "typesmith",
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
-  },
-  "dependencies": {
-    "change-case": "^5.4.4"
-  }
+	"name": "typesmith",
+	"scripts": {
+		"examples": "bun run examples/generate.ts",
+		"test": "bun test"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"dependencies": {
+		"change-case": "^5.4.4"
+	}
 }
