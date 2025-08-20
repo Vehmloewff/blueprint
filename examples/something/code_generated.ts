@@ -12,23 +12,35 @@ function deserializeNumber(value: unknown, path: string) {
 
 /** This is the struct */
 export class SomeStruct implements IntoSomeEnum {
+	/** This is foo */
 	foo: string
+	/** This is the title */
 	bar?: number
 
+	/**
+	 * This is the struct
+	 * 
+	 *  - `foo`: This is foo */
 	constructor(foo: string) {
 		this.foo = foo
 	}
 
+	/**
+	 * This is the struct
+	 * 
+	 *  - `foo`: This is foo */
 	static new(foo: string) {
 		return new this(foo)
 	}
 
+	/** This is foo */
 	withFoo(foo: string) {
 		this.foo = foo
 
 		return this
 	}
 
+	/** This is the title */
 	withBar(bar: number) {
 		this.bar = bar
 
@@ -69,7 +81,9 @@ export interface IntoSomeEnum {
 
 /** This is the enum */
 export class SomeEnum {
+	/** This is option 1 */
 	option1?: SomeStruct
+	/** This is option 2 */
 	option2?: {}
 
 	static from(thing: IntoSomeEnum | SomeEnum) {
@@ -124,7 +138,9 @@ export class SomeEnum {
 
 /** This is the main struct */
 export class MainStruct {
+	/** This is the title */
 	title?: string
+	/** This is the title */
 	something?: SomeEnum
 
 
@@ -132,12 +148,14 @@ export class MainStruct {
 		return new this()
 	}
 
+	/** This is the title */
 	withTitle(title: string) {
 		this.title = title
 
 		return this
 	}
 
+	/** This is the title */
 	withSomething(something: IntoSomeEnum | SomeEnum) {
 		this.something = SomeEnum.from(something)
 

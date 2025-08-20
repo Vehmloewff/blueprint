@@ -1,5 +1,5 @@
 import { pascalCase, camelCase } from 'change-case'
-import type { Generator } from './generator'
+import { Generator } from './generator'
 import type { Language, TypeAnalyzer } from './language'
 import type { EnumBody, StructBody, TypeDef } from './type_def'
 
@@ -73,6 +73,7 @@ export class Typescript implements Language {
 		generator.pushIn(`export class ${enumName} `, generator => {
 			// Add variant fields
 			for (const [variantKey, variant] of Object.entries(e.variants)) {
+				this.#generateDocComment(generator, variant.description)
 				if (variant.type) {
 					generator.pushLine(`${variantKey}?: ${this.#buildType(variant.type)}`)
 				} else {
@@ -170,6 +171,7 @@ export class Typescript implements Language {
 	generateStruct(generator: Generator, name: string, struct: StructBody) {
 		const className = pascalCase(name)
 		const requiredFields = Object.entries(struct.fields).filter(([_, field]) => field.required)
+		const requiredFieldsCommentList = requiredFields.map(([fieldName, field]) => `\`${fieldName}\`: ${field.description}`)
 		const optionalFields = Object.entries(struct.fields).filter(([_, field]) => !field.required)
 		const enumReferences = this.#analyzer.getInstances({ kind: 'ref', name }).filter(instance => instance.kind === 'enum')
 
@@ -185,6 +187,7 @@ export class Typescript implements Language {
 				const typeStr = this.#buildType(field.type)
 				const optional = field.required ? '' : '?'
 
+				this.#generateDocComment(generator, field.description)
 				generator.pushLine(`${camelFieldName}${optional}: ${typeStr}`)
 			}
 
@@ -195,6 +198,8 @@ export class Typescript implements Language {
 				const constructorParams = requiredFields
 					.map(([fieldName, field]) => `${camelCase(fieldName)}: ${this.#buildType(field.type)}`)
 					.join(', ')
+
+				this.#generateListDocComment(generator, struct.description, requiredFieldsCommentList)
 
 				generator.pushIn(`constructor(${constructorParams}) `, generator => {
 					for (const [fieldName] of requiredFields) {
@@ -208,6 +213,8 @@ export class Typescript implements Language {
 
 			// Add static new method
 			if (requiredFields.length > 0) {
+				this.#generateListDocComment(generator, struct.description, requiredFieldsCommentList)
+
 				const constructorParams = requiredFields
 					.map(([fieldName, field]) => `${camelCase(fieldName)}: ${this.#buildType(field.type)}`)
 					.join(', ')
@@ -233,6 +240,7 @@ export class Typescript implements Language {
 
 				const methodName = `with${pascalCase(fieldName)}`
 
+				this.#generateDocComment(generator, field.description)
 				generator.pushIn(`${methodName}(${camelFieldName}: ${typeStr}) `, generator => {
 					if (valueEnumName) {
 						generator.pushLine(`this.${camelFieldName} = ${valueEnumName}.from(${camelFieldName})`)
@@ -354,5 +362,10 @@ export class Typescript implements Language {
 
 			generator.pushLine(opener + line + suffix)
 		}
+	}
+
+	#generateListDocComment(generator: Generator, baseDescription: string, list: string[]) {
+		const items = list.map(item => ` - ${item}`)
+		this.#generateDocComment(generator, `${baseDescription}\n\n${items.join('\n')}`)
 	}
 }
