@@ -56,17 +56,14 @@ export class Typescript implements Language {
 	}
 
 	generateEnum(generator: Generator, name: string, e: EnumBody): void {
-		const isTagged = Object.values(e.variants).find(variant => variant.type !== undefined)
 		const enumName = pascalCase(name)
 
 		// Generate interface for things that can convert into this enum
-		if (isTagged) {
-			generator.pushLine(`export interface Into${enumName} {`)
-			generator.pushLine(`\tinto${enumName}(): ${enumName}`)
-			generator.pushLine('}')
-			generator.pushLine()
-			generator.pushLine()
-		}
+		generator.pushIn(`export interface Into${enumName} `, generator => {
+			generator.pushLine(`into${enumName}(): ${enumName}`)
+		})
+		generator.pushLine()
+		generator.pushLine()
 
 		// Generate the main enum class
 		this.#generateDocComment(generator, e.description)
@@ -84,14 +81,12 @@ export class Typescript implements Language {
 			generator.pushLine()
 
 			// Add static from method for tagged enums
-			if (isTagged) {
-				generator.pushIn(`static from(thing: Into${enumName} | ${enumName}) `, generator => {
-					generator.pushLine(`if (thing instanceof ${enumName}) return thing`)
-					generator.pushLine()
-					generator.pushLine(`return thing.into${enumName}()`)
-				})
+			generator.pushIn(`static from(thing: Into${enumName} | ${enumName}) `, generator => {
+				generator.pushLine(`if (thing instanceof ${enumName}) return thing`)
 				generator.pushLine()
-			}
+				generator.pushLine(`return thing.into${enumName}()`)
+			})
+			generator.pushLine()
 
 			// Add variant constructor methods
 			for (const [variantKey, variant] of Object.entries(e.variants)) {
