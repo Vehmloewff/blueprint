@@ -18,10 +18,12 @@ const someEnum = smith.enum('some_enum', {
 	},
 })
 
-export const def = smith.struct('main_struct', {
+smith.struct('main_struct', {
 	description: 'This is the main struct',
 	fields: {
 		title: { description: 'This is the title', type: smith.string() },
 		something: { description: 'This is the title', type: someEnum },
 	},
 })
+
+export default smith

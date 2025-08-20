@@ -32,6 +32,16 @@ export class Typescript implements Language {
 		generator.pushLine('\treturn value')
 		generator.pushLine('}')
 		generator.pushLine()
+		generator.pushLine(
+			'function deserializeList<T>(value: unknown, path: string, deserializeItem: (item: unknown, itemPath: string) => T): T[] {'
+		)
+		generator.pushLine(
+			'\tif (!Array.isArray(value)) throw new Error(`failed to deserialize into list at ${path}: value is not an array`)'
+		)
+		generator.pushLine()
+		generator.pushLine('\treturn value.map((item, index) => deserializeItem(item, `${path}[${index}]`))')
+		generator.pushLine('}')
+		generator.pushLine()
 	}
 
 	analyze(items: Map<string, { kind: 'struct' | 'enum'; body: StructBody | EnumBody }>): void {
@@ -125,10 +135,10 @@ export class Typescript implements Language {
 				for (const [variantKey, variant] of Object.entries(e.variants)) {
 					if (variant.type) {
 						generator.pushLine(
-							`if (this.${variantKey}) value.${variantKey} = ${this.#buildSerializer(variant.type, `this.${variantKey}`)},`
+							`if (this.${variantKey}) value.${variantKey} = ${this.#buildSerializer(variant.type, `this.${variantKey}`)}`
 						)
 					} else {
-						generator.pushLine(`if (this.${variantKey}) value.${variantKey} = {}`)
+						generator.pushLine(`if (this.${variantKey} !== undefined) value.${variantKey} = {}`)
 					}
 				}
 
@@ -281,13 +291,19 @@ export class Typescript implements Language {
 
 			// Add serialize method
 			generator.pushIn(`serialize(): unknown `, generator => {
-				generator.pushIn(`return `, generator => {
-					for (const [fieldName, field] of Object.entries(struct.fields)) {
-						const camelFieldName = camelCase(fieldName)
+				generator.pushLine('const serialized: Record<string, unknown> = {}')
+				generator.pushLine()
 
-						generator.pushLine(`${fieldName}: ${this.#buildSerializer(field.type, `this.${camelFieldName}`)},`)
-					}
-				})
+				for (const [fieldName, field] of Object.entries(struct.fields)) {
+					const camelFieldName = camelCase(fieldName)
+
+					generator.pushLine(
+						`if (this.${camelFieldName} !== undefined) serialized.${fieldName} = ${this.#buildSerializer(field.type, `this.${camelFieldName}`)}`
+					)
+				}
+
+				generator.pushLine()
+				generator.pushLine('return serialized')
 			})
 
 			generator.pushLine()
@@ -308,15 +324,11 @@ export class Typescript implements Language {
 				}
 
 				// Create instance
-				if (requiredFields.length > 0) {
-					const deserializeArgs = requiredFields
-						.map(([fieldName, field]) => this.#buildDeserializer(field.type, `value.${fieldName}`, `\`\${path}/${fieldName}\``))
-						.join(', ')
-					generator.pushLine(`const self = new this(${deserializeArgs})`)
-				} else {
-					generator.pushLine(`const self = new this()`)
-				}
+				const requiredArgs = requiredFields
+					.map(([fieldName, field]) => this.#buildDeserializer(field.type, `value.${fieldName}`, `\`\${path}/${fieldName}\``))
+					.join(', ')
 
+				generator.pushLine(`const self = new this(${requiredArgs})`)
 				generator.pushLine()
 
 				// Handle optional fields
@@ -346,8 +358,8 @@ export class Typescript implements Language {
 		if (type.kind === 'boolean') return `deserializeBool(${valueExpr}, ${pathExpr})`
 		if (type.kind === 'ref') return `${pascalCase(type.name)}.deserialize(${valueExpr}, ${pathExpr})`
 		if (type.kind === 'list') {
-			const itemDeserializer = this.#buildDeserializer(type.of, 'item', '\`${path}/${index}\`')
-			return `${valueExpr}.map((item, index) => ${itemDeserializer})`
+			const itemDeserializer = this.#buildDeserializer(type.of, 'item', 'itemPath')
+			return `deserializeList(${valueExpr}, ${pathExpr}, (item, itemPath) => ${itemDeserializer})`
 		}
 
 		throw new Error('Unknown type kind')

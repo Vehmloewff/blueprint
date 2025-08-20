@@ -16,6 +16,12 @@ function deserializeBool(value: unknown, path: string) {
 	return value
 }
 
+function deserializeList<T>(value: unknown, path: string, deserializeItem: (item: unknown, itemPath: string) => T): T[] {
+	if (!Array.isArray(value)) throw new Error(`failed to deserialize into list at ${path}: value is not an array`)
+
+	return value.map((item, index) => deserializeItem(item, `${path}[${index}]`))
+}
+
 
 
 /** This is the struct */
@@ -48,7 +54,12 @@ export class SomeStruct implements IntoSomeEnum {
 	}
 
 	serialize(): unknown {
-		return { foo: this.foo, bar: this.bar }
+		const serialized: Record<string, unknown> = {}
+
+		if (this.foo !== undefined) serialized.foo = this.foo
+		if (this.bar !== undefined) serialized.bar = this.bar
+
+		return serialized
 	}
 
 	static deserialize(value: unknown, path: string = '#') {
@@ -101,7 +112,7 @@ export class SomeEnum {
 		const value: Record<string, unknown> = {}
 
 		if (this.option1) value.option1 = this.option1.serialize()
-		if (this.option2) value.option2 = this.option2
+		if (this.option2 !== undefined) value.option2 = {}
 
 		return value
 	}
@@ -148,10 +159,12 @@ export class MainStruct {
 	}
 
 	serialize(): unknown {
-		return {
-			title: this.title,
-			something: this.something?.serialize?.() ?? this.something,
-		}
+		const serialized: Record<string, unknown> = {}
+
+		if (this.title !== undefined) serialized.title = this.title
+		if (this.something !== undefined) serialized.something = this.something.serialize()
+
+		return serialized
 	}
 
 	static deserialize(value: unknown, path: string = '#') {
