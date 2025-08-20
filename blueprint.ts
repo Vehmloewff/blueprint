@@ -9,7 +9,7 @@ type Enum = { kind: 'enum' } & EnumBody
 
 type ItemMap = Map<string, RefItem>
 
-export class Smith {
+export class Blueprint {
 	#items: ItemMap = new Map()
 
 	string(): StringDef {
@@ -60,11 +60,11 @@ export class Smith {
 	}
 
 	generateTypescript() {
-		return this.generate(new Typescript(new SmithAnalyzer(this.#items)))
+		return this.generate(new Typescript(new BlueprintAnalyzer(this.#items)))
 	}
 }
 
-class SmithAnalyzer implements TypeAnalyzer {
+class BlueprintAnalyzer implements TypeAnalyzer {
 	#items: ItemMap
 
 	constructor(items: ItemMap) {
