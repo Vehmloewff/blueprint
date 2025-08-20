@@ -96,8 +96,17 @@ export class SomeEnum {
 		return value
 	}
 
-	static deserialize() {
-		// TODO
+	static deserialize(value: unknown, path: string) {
+		const baseErrorMessage = `failed to deserialize into 'some_enum' at '${path}'`
+		if (!value || typeof value !== 'object') throw new Error(`${baseErrorMessage}: value is not an object.`)
+
+		const self = new SomeEnum()
+
+		if ('option1' in value) self.option1 = SomeStruct.deserialize(value.option1, `${path}->option1`)
+		else if ('option2' in value) self.option2 = {}
+		else throw new Error(`${baseErrorMessage}: value does not contain any recognized variants.`)
+
+		return self
 	}
 }
 
