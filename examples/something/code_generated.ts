@@ -51,9 +51,9 @@ export class SomeStruct implements IntoSomeEnum {
 		if (!value || typeof value !== 'object') throw new Error(`${baseErrorMessage}: value is not an object.`)
 
 		if (!('foo' in value)) throw new Error(`${baseErrorMessage}: value does not contain required field 'foo'.`)
-		const self = new this(deserializeString(value.foo, `${path}->foo`))
+		const self = new this(deserializeString(value.foo, `${path}/foo`))
 
-		if ('bar' in value) self.bar = deserializeNumber(value.bar, `${path}->bar`)
+		if ('bar' in value) self.bar = deserializeNumber(value.bar, `${path}/bar`)
 
 		return self
 	}
@@ -102,7 +102,7 @@ export class SomeEnum {
 
 		const self = new SomeEnum()
 
-		if ('option1' in value) self.option1 = SomeStruct.deserialize(value.option1, `${path}->option1`)
+		if ('option1' in value) self.option1 = SomeStruct.deserialize(value.option1, `${path}/option1`)
 		else if ('option2' in value) self.option2 = {}
 		else throw new Error(`${baseErrorMessage}: value does not contain any recognized variants.`)
 
@@ -131,10 +131,18 @@ export class MainStruct {
 	}
 
 	serialize() {
-		// TODO
+		return { title: this.title, something: this.something }
 	}
 
-	static deserialize(value: unknown) {
-		// TODO
+	static deserialize(value: unknown, path: string = '#') {
+		const baseErrorMessage = `failed to deserialize into 'some_struct' at '${path}'`
+		if (!value || typeof value !== 'object') throw new Error(`${baseErrorMessage}: value is not an object.`)
+
+		const self = new this()
+
+		if ('title' in value) self.title = deserializeString(value.title, `${path}/bar`)
+		if ('something' in value) self.something = SomeEnum.deserialize(value.something, `${path}/bar`)
+
+		return self
 	}
 }
