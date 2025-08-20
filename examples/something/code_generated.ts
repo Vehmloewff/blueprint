@@ -16,6 +16,9 @@ function deserializeBool(value: unknown, path: string) {
 	return value
 }
 
+
+
+/** This is the struct */
 export class SomeStruct implements IntoSomeEnum {
 	foo: string
 	bar?: number
@@ -30,11 +33,13 @@ export class SomeStruct implements IntoSomeEnum {
 
 	withFoo(foo: string) {
 		this.foo = foo
+
 		return this
 	}
 
 	withBar(bar: number) {
 		this.bar = bar
+
 		return this
 	}
 
@@ -46,7 +51,7 @@ export class SomeStruct implements IntoSomeEnum {
 		return { foo: this.foo, bar: this.bar }
 	}
 
-	static deserialize(value: unknown, path: string) {
+	static deserialize(value: unknown, path: string = '#') {
 		const baseErrorMessage = `failed to deserialize into 'some_struct' at '${path}'`
 		if (!value || typeof value !== 'object') throw new Error(`${baseErrorMessage}: value is not an object.`)
 
@@ -59,10 +64,13 @@ export class SomeStruct implements IntoSomeEnum {
 	}
 }
 
+
 export interface IntoSomeEnum {
 	intoSomeEnum(): SomeEnum
 }
 
+
+/** This is the enum */
 export class SomeEnum {
 	option1?: SomeStruct
 	option2?: {}
@@ -73,6 +81,7 @@ export class SomeEnum {
 		return thing.intoSomeEnum()
 	}
 
+	/** This is option 1 */
 	static option1(value: SomeStruct) {
 		const e = new SomeEnum()
 		e.option1 = value
@@ -80,6 +89,7 @@ export class SomeEnum {
 		return e
 	}
 
+	/** This is option 2 */
 	static option2() {
 		const e = new SomeEnum()
 		e.option2 = {}
@@ -102,17 +112,24 @@ export class SomeEnum {
 
 		const self = new SomeEnum()
 
-		if ('option1' in value) self.option1 = SomeStruct.deserialize(value.option1, `${path}/option1`)
-		else if ('option2' in value) self.option2 = {}
+		if ('option1' in value) {
+			self.option1 = SomeStruct.deserialize(value.option1, `${path}/option1`)
+		}
+		else if ('option2' in value) {
+			self.option2 = {}
+		}
 		else throw new Error(`${baseErrorMessage}: value does not contain any recognized variants.`)
 
 		return self
 	}
 }
 
+
+/** This is the main struct */
 export class MainStruct {
 	title?: string
 	something?: SomeEnum
+
 
 	static new() {
 		return new this()
@@ -130,18 +147,21 @@ export class MainStruct {
 		return this
 	}
 
-	serialize() {
-		return { title: this.title, something: this.something }
+	serialize(): unknown {
+		return {
+			title: this.title,
+			something: this.something?.serialize?.() ?? this.something,
+		}
 	}
 
 	static deserialize(value: unknown, path: string = '#') {
-		const baseErrorMessage = `failed to deserialize into 'some_struct' at '${path}'`
+		const baseErrorMessage = `failed to deserialize into 'main_struct' at '${path}'`
 		if (!value || typeof value !== 'object') throw new Error(`${baseErrorMessage}: value is not an object.`)
 
 		const self = new this()
 
-		if ('title' in value) self.title = deserializeString(value.title, `${path}/bar`)
-		if ('something' in value) self.something = SomeEnum.deserialize(value.something, `${path}/bar`)
+		if ('title' in value) self.title = deserializeString(value.title, `${path}/title`)
+		if ('something' in value) self.something = SomeEnum.deserialize(value.something, `${path}/something`)
 
 		return self
 	}

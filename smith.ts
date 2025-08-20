@@ -42,6 +42,21 @@ export class Smith {
 		const builder = new StringBuilder()
 		const generator = new Generator(builder, 0)
 
+		// Allow language to analyze all items first
+		if (language.analyze) {
+			const itemsForAnalysis = new Map()
+			for (const [name, item] of this.#items.entries()) {
+				itemsForAnalysis.set(name, {
+					kind: item.kind,
+					body:
+						item.kind === 'enum'
+							? { description: item.description, variants: item.variants }
+							: { description: item.description, fields: item.fields },
+				})
+			}
+			language.analyze(itemsForAnalysis)
+		}
+
 		if (language.generateHeader) {
 			language.generateHeader(generator)
 		}
