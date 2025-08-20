@@ -11,40 +11,48 @@ export class Typescript implements Language {
 	}
 
 	generateHeader(generator: Generator): void {
-		generator.pushLine('function deserializeString(value: unknown, path: string) {')
-		generator.pushLine(
-			"\tif (typeof value !== 'string') throw new Error(`failed to deserialize into string at ${path}: value is not a string`)"
-		)
-		generator.pushLine()
-		generator.pushLine('\treturn value')
-		generator.pushLine('}')
-		generator.pushLine()
-		generator.pushLine('function deserializeNumber(value: unknown, path: string) {')
-		generator.pushLine(
-			"\tif (typeof value !== 'number') throw new Error(`failed to deserialize into number at ${path}: value is not a number`)"
-		)
-		generator.pushLine()
-		generator.pushLine('\treturn value')
-		generator.pushLine('}')
-		generator.pushLine()
-		generator.pushLine('function deserializeBool(value: unknown, path: string) {')
-		generator.pushLine(
-			"\tif (typeof value !== 'boolean') throw new Error(`failed to deserialize into boolean at ${path}: value is not a boolean`)"
-		)
-		generator.pushLine()
-		generator.pushLine('\treturn value')
-		generator.pushLine('}')
-		generator.pushLine()
-		generator.pushLine(
-			'function deserializeList<T>(value: unknown, path: string, deserializeItem: (item: unknown, itemPath: string) => T): T[] {'
-		)
-		generator.pushLine(
-			'\tif (!Array.isArray(value)) throw new Error(`failed to deserialize into list at ${path}: value is not an array`)'
-		)
-		generator.pushLine()
-		generator.pushLine('\treturn value.map((item, index) => deserializeItem(item, `${path}[${index}]`))')
-		generator.pushLine('}')
-		generator.pushLine()
+		if (this.#analyzer.getInstances({ kind: 'string' }).length) {
+			generator.pushIn('function deserializeString(value: unknown, path: string) ', generator => {
+				generator.pushLine(
+					"if (typeof value !== 'string') throw new Error(`failed to deserialize into string at ${path}: value is not a string`)"
+				)
+				generator.pushLine()
+				generator.pushLine('return value')
+			})
+		}
+
+		if (this.#analyzer.getInstances({ kind: 'number' }).length) {
+			generator.pushIn('function deserializeNumber(value: unknown, path: string) ', generator => {
+				generator.pushLine(
+					"if (typeof value !== 'number') throw new Error(`failed to deserialize into number at ${path}: value is not a number`)"
+				)
+				generator.pushLine()
+				generator.pushLine('return value')
+			})
+		}
+
+		if (this.#analyzer.getInstances({ kind: 'boolean' }).length) {
+			generator.pushIn('function deserializeBool(value: unknown, path: string) ', generator => {
+				generator.pushLine(
+					"if (typeof value !== 'boolean') throw new Error(`failed to deserialize into boolean at ${path}: value is not a boolean`)"
+				)
+				generator.pushLine()
+				generator.pushLine('return value')
+			})
+		}
+
+		if (this.#analyzer.getInstances({ kind: 'list', of: { kind: 'unknown' } }).length) {
+			generator.pushIn(
+				'function deserializeList<T>(value: unknown, path: string, deserializeItem: (item: unknown, itemPath: string) => T): T[] ',
+				generator => {
+					generator.pushLine(
+						'if (!Array.isArray(value)) throw new Error(`failed to deserialize into list at ${path}: value is not an array`)'
+					)
+					generator.pushLine()
+					generator.pushLine('return value.map((item, index) => deserializeItem(item, `${path}[${index}]`))')
+				}
+			)
+		}
 	}
 
 	generateEnum(generator: Generator, name: string, e: EnumBody): void {

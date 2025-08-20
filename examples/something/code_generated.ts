@@ -3,25 +3,11 @@ function deserializeString(value: unknown, path: string) {
 
 	return value
 }
-
 function deserializeNumber(value: unknown, path: string) {
 	if (typeof value !== 'number') throw new Error(`failed to deserialize into number at ${path}: value is not a number`)
 
 	return value
 }
-
-function deserializeBool(value: unknown, path: string) {
-	if (typeof value !== 'boolean') throw new Error(`failed to deserialize into boolean at ${path}: value is not a boolean`)
-
-	return value
-}
-
-function deserializeList<T>(value: unknown, path: string, deserializeItem: (item: unknown, itemPath: string) => T): T[] {
-	if (!Array.isArray(value)) throw new Error(`failed to deserialize into list at ${path}: value is not an array`)
-
-	return value.map((item, index) => deserializeItem(item, `${path}[${index}]`))
-}
-
 
 
 /** This is the struct */

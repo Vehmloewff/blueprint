@@ -105,10 +105,13 @@ class SmithAnalyzer implements TypeAnalyzer {
 
 	#doesTypeMatch(base: TypeDef, match: TypeDef): boolean {
 		if (base.kind === 'boolean' && match.kind === 'boolean') return true
-		if (base.kind === 'number' && match.kind === 'number' && base.behavior === match.behavior) return true
+		if (base.kind === 'number' && match.kind === 'number') {
+			if (base.behavior === match.behavior || match.behavior === undefined) return true
+		}
 		if (base.kind === 'string' && match.kind === 'string') return true
 		if (base.kind === 'list' && match.kind === 'list' && this.#doesTypeMatch(base.of, match.of)) return true
 		if (base.kind === 'ref' && match.kind === 'ref' && base.name === match.name) return true
+		if (match.kind === 'unknown') return true
 
 		return false
 	}

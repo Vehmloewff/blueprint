@@ -1,11 +1,12 @@
 export type NumberBehavior = 'u8' | 'u16' | 'u32' | 'u64' | 'i8' | 'i16' | 'i32' | 'i64' | 'f32' | 'f64'
 
-export type TypeDef = RefDef | NumberDef | StringDef | BooleanDef | ListDef
+export type TypeDef = RefDef | NumberDef | StringDef | BooleanDef | UnknownDef | ListDef
 
 export type RefDef = { kind: 'ref'; name: string }
-export type NumberDef = { kind: 'number'; behavior: NumberBehavior }
+export type NumberDef = { kind: 'number'; behavior?: NumberBehavior }
 export type StringDef = { kind: 'string' }
 export type BooleanDef = { kind: 'boolean' }
+export type UnknownDef = { kind: 'unknown' }
 export type ListDef = { kind: 'list'; of: TypeDef }
 
 export type StructField = { description: string; type: TypeDef; required?: boolean }
