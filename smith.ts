@@ -1,5 +1,5 @@
 import { Generator, StringBuilder } from './generator'
-import type { Language } from './language'
+import type { CheckedItem, Language, TypeAnalyzer, TypeInstance } from './language'
 import type { BooleanDef, EnumBody, ListDef, NumberBehavior, NumberDef, RefDef, StringDef, StructBody, TypeDef } from './type_def'
 import { Typescript } from './typescript'
 
@@ -7,8 +7,10 @@ type RefItem = Struct | Enum
 type Struct = { kind: 'struct' } & StructBody
 type Enum = { kind: 'enum' } & EnumBody
 
+type ItemMap = Map<string, RefItem>
+
 export class Smith {
-	#items = new Map<string, RefItem>()
+	#items: ItemMap = new Map()
 
 	string(): StringDef {
 		return { kind: 'string' }
@@ -42,21 +44,6 @@ export class Smith {
 		const builder = new StringBuilder()
 		const generator = new Generator(builder, 0)
 
-		// Allow language to analyze all items first
-		if (language.analyze) {
-			const itemsForAnalysis = new Map()
-			for (const [name, item] of this.#items.entries()) {
-				itemsForAnalysis.set(name, {
-					kind: item.kind,
-					body:
-						item.kind === 'enum'
-							? { description: item.description, variants: item.variants }
-							: { description: item.description, fields: item.fields },
-				})
-			}
-			language.analyze(itemsForAnalysis)
-		}
-
 		if (language.generateHeader) {
 			language.generateHeader(generator)
 		}
@@ -73,6 +60,56 @@ export class Smith {
 	}
 
 	generateTypescript() {
-		return this.generate(new Typescript())
+		return this.generate(new Typescript(new SmithAnalyzer(this.#items)))
+	}
+}
+
+class SmithAnalyzer implements TypeAnalyzer {
+	#items: ItemMap
+
+	constructor(items: ItemMap) {
+		this.#items = items
+	}
+
+	checkItem(name: string): CheckedItem | null {
+		const item = this.#items.get(name)
+
+		if (!item) return null
+
+		return item.kind
+	}
+
+	getInstances(type: TypeDef): TypeInstance[] {
+		const instances: TypeInstance[] = []
+
+		for (const [itemName, item] of this.#items) {
+			if (item.kind === 'enum') {
+				for (const [variantName, variant] of Object.entries(item.variants)) {
+					if (variant.type && this.#doesTypeMatch(variant.type, type)) {
+						instances.push({ kind: 'enum', enumName: itemName, variantName })
+					}
+				}
+			}
+
+			if (item.kind === 'struct') {
+				for (const [fieldName, field] of Object.entries(item.fields)) {
+					if (field.type && this.#doesTypeMatch(field.type, type)) {
+						instances.push({ kind: 'struct', structName: itemName, fieldName })
+					}
+				}
+			}
+		}
+
+		return instances
+	}
+
+	#doesTypeMatch(base: TypeDef, match: TypeDef): boolean {
+		if (base.kind === 'boolean' && match.kind === 'boolean') return true
+		if (base.kind === 'number' && match.kind === 'number' && base.behavior === match.behavior) return true
+		if (base.kind === 'string' && match.kind === 'string') return true
+		if (base.kind === 'list' && match.kind === 'list' && this.#doesTypeMatch(base.of, match.of)) return true
+		if (base.kind === 'ref' && match.kind === 'ref' && base.name === match.name) return true
+
+		return false
 	}
 }

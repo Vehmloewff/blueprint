@@ -1,11 +1,14 @@
 import { pascalCase, camelCase } from 'change-case'
 import type { Generator } from './generator'
-import type { Language } from './language'
+import type { Language, TypeAnalyzer } from './language'
 import type { EnumBody, StructBody, TypeDef } from './type_def'
 
 export class Typescript implements Language {
-	#enumVariantTypes = new Map<string, Set<string>>() // enum name -> set of struct names used as variants
-	#enumDefinitions = new Map<string, EnumBody>() // enum name -> enum definition
+	#analyzer: TypeAnalyzer
+
+	constructor(analyzer: TypeAnalyzer) {
+		this.#analyzer = analyzer
+	}
 
 	generateHeader(generator: Generator): void {
 		generator.pushLine('function deserializeString(value: unknown, path: string) {')
@@ -42,30 +45,6 @@ export class Typescript implements Language {
 		generator.pushLine('\treturn value.map((item, index) => deserializeItem(item, `${path}[${index}]`))')
 		generator.pushLine('}')
 		generator.pushLine()
-	}
-
-	analyze(items: Map<string, { kind: 'struct' | 'enum'; body: StructBody | EnumBody }>): void {
-		// Clear existing relationships
-		this.#enumVariantTypes.clear()
-		this.#enumDefinitions.clear()
-
-		// Analyze all enum definitions to find struct relationships
-		for (const [itemName, item] of items.entries()) {
-			if (item.kind === 'enum') {
-				const enumBody = item.body as EnumBody
-				this.#enumDefinitions.set(itemName, enumBody)
-
-				const structVariantTypes = new Set<string>()
-				for (const [variantKey, variant] of Object.entries(enumBody.variants)) {
-					if (variant.type && variant.type.kind === 'ref') {
-						structVariantTypes.add(variant.type.name)
-					}
-				}
-				if (structVariantTypes.size > 0) {
-					this.#enumVariantTypes.set(itemName, structVariantTypes)
-				}
-			}
-		}
 	}
 
 	generateEnum(generator: Generator, name: string, e: EnumBody): void {
@@ -184,16 +163,11 @@ export class Typescript implements Language {
 		const className = pascalCase(name)
 		const requiredFields = Object.entries(struct.fields).filter(([_, field]) => field.required)
 		const optionalFields = Object.entries(struct.fields).filter(([_, field]) => !field.required)
+		const enumReferences = this.#analyzer.getInstances({ kind: 'ref', name }).filter(instance => instance.kind === 'enum')
 
-		// Check if this struct is used as an enum variant
-		const implementsInterfaces: string[] = []
-		for (const [enumName, variantTypes] of this.#enumVariantTypes.entries()) {
-			if (variantTypes.has(name)) {
-				implementsInterfaces.push(`Into${pascalCase(enumName)}`)
-			}
-		}
-
-		const implementsClause = implementsInterfaces.length > 0 ? ` implements ${implementsInterfaces.join(', ')}` : ''
+		// We need to be sure that we implement any `Into*` interfaces for enums
+		const enumIntoImplementations = enumReferences.map(instance => `Into${pascalCase(instance.enumName)}`)
+		const implementsClause = enumIntoImplementations.length > 0 ? ` implements ${enumIntoImplementations.join(', ')}` : ''
 
 		this.#generateDocComment(generator, struct.description)
 		generator.pushIn(`export class ${className}${implementsClause} `, generator => {
@@ -245,24 +219,15 @@ export class Typescript implements Language {
 			// Add with methods for all fields
 			for (const [fieldName, field] of Object.entries(struct.fields)) {
 				const camelFieldName = camelCase(fieldName)
-				let typeStr = this.#buildType(field.type)
+				const valueEnumName =
+					field.type.kind === 'ref' && this.#analyzer.checkItem(field.type.name) === 'enum' ? pascalCase(field.type.name) : null
+				const typeStr = valueEnumName ? `Into${valueEnumName} | ${this.#buildType(field.type)}` : this.#buildType(field.type)
+
 				const methodName = `with${pascalCase(fieldName)}`
 
-				// Check if this field accepts an enum type and add the Into interface
-				if (field.type.kind === 'ref') {
-					const refTypeName = field.type.name
-					const interfaceName = `Into${pascalCase(refTypeName)}`
-
-					// Check if this referenced type is an enum
-					if (this.#enumVariantTypes.has(refTypeName)) {
-						typeStr = `${interfaceName} | ${typeStr}`
-					}
-				}
-
 				generator.pushIn(`${methodName}(${camelFieldName}: ${typeStr}) `, generator => {
-					if (field.type.kind === 'ref' && this.#enumVariantTypes.has(field.type.name)) {
-						const enumClassName = pascalCase(field.type.name)
-						generator.pushLine(`this.${camelFieldName} = ${enumClassName}.from(${camelFieldName})`)
+					if (valueEnumName) {
+						generator.pushLine(`this.${camelFieldName} = ${valueEnumName}.from(${camelFieldName})`)
 					} else {
 						generator.pushLine(`this.${camelFieldName} = ${camelFieldName}`)
 					}
@@ -274,19 +239,14 @@ export class Typescript implements Language {
 			}
 
 			// Add intoEnum methods for implemented interfaces
-			for (const [enumName, variantTypes] of this.#enumVariantTypes.entries()) {
-				if (variantTypes.has(name)) {
-					const enumClassName = pascalCase(enumName)
-					const methodName = `into${enumClassName}`
+			for (const instance of enumReferences) {
+				const enumClassName = pascalCase(instance.enumName)
+				const methodName = `into${enumClassName}`
 
-					// Find which variant this struct corresponds to by looking up the enum definition
-					const variantName = this.#findVariantForStruct(enumName, name)
-
-					generator.pushIn(`${methodName}() `, generator => {
-						generator.pushLine(`return ${enumClassName}.${camelCase(variantName)}(this)`)
-					})
-					generator.pushLine()
-				}
+				generator.pushIn(`${methodName}() `, generator => {
+					generator.pushLine(`return ${enumClassName}.${camelCase(instance.variantName)}(this)`)
+				})
+				generator.pushLine()
 			}
 
 			// Add serialize method
@@ -363,18 +323,6 @@ export class Typescript implements Language {
 		}
 
 		throw new Error('Unknown type kind')
-	}
-
-	#findVariantForStruct(enumName: string, structName: string): string {
-		const enumDef = this.#enumDefinitions.get(enumName)
-		if (!enumDef) return 'option1' // fallback
-
-		for (const [variantKey, variant] of Object.entries(enumDef.variants)) {
-			if (variant.type && variant.type.kind === 'ref' && variant.type.name === structName) {
-				return variantKey
-			}
-		}
-		return 'option1' // fallback
 	}
 
 	#buildType(type: TypeDef): string {
