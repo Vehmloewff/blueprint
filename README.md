@@ -34,3 +34,16 @@ b.generateRust() // `pub struct Message { ...`
 ```
 
 See the subfolders in the `examples` directory for further examples.
+
+## Contributing
+
+Requires `bun` to be installed.
+
+If making general changes, `bun test` is your friend.
+
+If adding support for a new language...
+
+- create a new class implements the `Language` interface
+- add a `generate*()` method to `Blueprint` that generates code for the language by calling `this.generate(new WhateverYourNewLanguageIs())`
+- add support for the language in `examples/main.test.ts` and `examples/generate.ts`
+- run `bun examples` to generate code for the new language based on existing examples
