@@ -16,5 +16,12 @@ describe('examples', async () => {
 
 			expect(ts).toEqual(expectedTs)
 		})
+
+		it(`${example} [go]`, async () => {
+			const go = definition.generateGo()
+			const expectedGo = await Bun.file(`examples/${example}/code_generated.go`).text()
+
+			expect(go).toEqual(expectedGo)
+		})
 	}
 })

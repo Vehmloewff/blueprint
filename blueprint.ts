@@ -2,6 +2,7 @@ import { Generator, StringBuilder } from './generator'
 import type { CheckedItem, Language, TypeAnalyzer, TypeInstance } from './language'
 import type { BooleanDef, EnumBody, ListDef, NumberBehavior, NumberDef, RefDef, StringDef, StructBody, TypeDef } from './type_def'
 import { Typescript } from './typescript'
+import { Golang } from './golang'
 
 type RefItem = Struct | Enum
 type Struct = { kind: 'struct' } & StructBody
@@ -61,6 +62,10 @@ export class Blueprint {
 
 	generateTypescript() {
 		return this.generate(new Typescript(new BlueprintAnalyzer(this.#items)))
+	}
+
+	generateGo() {
+		return this.generate(new Golang(new BlueprintAnalyzer(this.#items)))
 	}
 }
 

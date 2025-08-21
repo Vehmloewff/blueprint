@@ -10,4 +10,5 @@ for (const example of await readdir('examples')) {
 	if (!(definition instanceof Blueprint)) throw new Error(`Definition for example ${example} is not an instance of Blueprint`)
 
 	await Bun.file(`examples/${example}/code_generated.ts`).write(definition.generateTypescript())
+	await Bun.file(`examples/${example}/code_generated.go`).write(definition.generateGo())
 }
