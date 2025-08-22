@@ -1,4 +1,4 @@
-import { pascalCase, camelCase, snakeCase } from 'change-case'
+import { pascalCase, camelCase } from 'change-case'
 import { Generator } from './generator'
 import type { Language, TypeAnalyzer } from './language'
 import type { EnumBody, StructBody, TypeDef } from './type_def'
@@ -20,7 +20,7 @@ export class Golang implements Language {
 
 		// Generate deserializer helper functions
 		if (this.#analyzer.getInstances({ kind: 'string' }).length) {
-			generator.pushIn('func deserializeString(value interface{}, path string) (string, error) ', generator => {
+			generator.pushIn('func deserializeString(value any, path string) (string, error) ', generator => {
 				generator.pushLine('str, ok := value.(string)')
 				generator.pushLine('if !ok {')
 				generator.pushLine('\treturn "", fmt.Errorf("failed to deserialize into string at %s: value is not a string", path)')
@@ -31,7 +31,7 @@ export class Golang implements Language {
 		}
 
 		if (this.#analyzer.getInstances({ kind: 'number' }).length) {
-			generator.pushIn('func deserializeNumber(value interface{}, path string) (float64, error) ', generator => {
+			generator.pushIn('func deserializeNumber(value any, path string) (float64, error) ', generator => {
 				generator.pushLine('num, ok := value.(float64)')
 				generator.pushLine('if !ok {')
 				generator.pushLine('\treturn 0, fmt.Errorf("failed to deserialize into number at %s: value is not a number", path)')
@@ -42,7 +42,7 @@ export class Golang implements Language {
 		}
 
 		if (this.#analyzer.getInstances({ kind: 'boolean' }).length) {
-			generator.pushIn('func deserializeBool(value interface{}, path string) (bool, error) ', generator => {
+			generator.pushIn('func deserializeBool(value any, path string) (bool, error) ', generator => {
 				generator.pushLine('b, ok := value.(bool)')
 				generator.pushLine('if !ok {')
 				generator.pushLine('\treturn false, fmt.Errorf("failed to deserialize into boolean at %s: value is not a boolean", path)')
@@ -54,14 +54,14 @@ export class Golang implements Language {
 
 		if (this.#analyzer.getInstances({ kind: 'list', of: { kind: 'unknown' } }).length) {
 			generator.pushIn(
-				'func deserializeList(value interface{}, path string, deserializeItem func(interface{}, string) (interface{}, error)) ([]interface{}, error) ',
+				'func deserializeList(value any, path string, deserializeItem func(any, string) (any, error)) ([]any, error) ',
 				generator => {
-					generator.pushLine('arr, ok := value.([]interface{})')
+					generator.pushLine('arr, ok := value.([]any)')
 					generator.pushLine('if !ok {')
 					generator.pushLine('\treturn nil, fmt.Errorf("failed to deserialize into list at %s: value is not an array", path)')
 					generator.pushLine('}')
 					generator.pushLine()
-					generator.pushLine('result := make([]interface{}, len(arr))')
+					generator.pushLine('result := make([]any, len(arr))')
 					generator.pushLine('for i, item := range arr {')
 					generator.pushLine('\tdeserialized, err := deserializeItem(item, fmt.Sprintf("%s[%d]", path, i))')
 					generator.pushLine('\tif err != nil {')
@@ -104,7 +104,7 @@ export class Golang implements Language {
 
 		// Add static from method for tagged enums
 		this.#generateDocComment(generator, `Creates a ${enumName} from an Into${enumName} or returns the existing ${enumName}`)
-		generator.pushIn(`func ${enumName}From(thing interface{}) *${enumName} `, generator => {
+		generator.pushIn(`func ${enumName}From(thing any) *${enumName} `, generator => {
 			generator.pushLine(`if enum, ok := thing.(*${enumName}); ok {`)
 			generator.pushLine('\treturn enum')
 			generator.pushLine('}')
@@ -138,8 +138,8 @@ export class Golang implements Language {
 
 		// Add serialize method
 		this.#generateDocComment(generator, `Serializes the ${enumName} to a map for JSON encoding`)
-		generator.pushIn(`func (e *${enumName}) Serialize() map[string]interface{} `, generator => {
-			generator.pushLine('result := make(map[string]interface{})')
+		generator.pushIn(`func (e *${enumName}) Serialize() map[string]any `, generator => {
+			generator.pushLine('result := make(map[string]any)')
 			generator.pushLine()
 
 			for (const [variantKey, variant] of Object.entries(e.variants)) {
@@ -166,9 +166,9 @@ export class Golang implements Language {
 
 		// Add static deserialize method
 		this.#generateDocComment(generator, `Deserializes a map into a ${enumName}`)
-		generator.pushIn(`func ${enumName}Deserialize(value interface{}, path string) (*${enumName}, error) `, generator => {
+		generator.pushIn(`func ${enumName}Deserialize(value any, path string) (*${enumName}, error) `, generator => {
 			generator.pushLine(`baseErrorMessage := fmt.Sprintf("failed to deserialize into '${name}' at '%s'", path)`)
-			generator.pushLine('obj, ok := value.(map[string]interface{})')
+			generator.pushLine('obj, ok := value.(map[string]any)')
 			generator.pushLine('if !ok {')
 			generator.pushLine('\treturn nil, fmt.Errorf("%s: value is not an object", baseErrorMessage)')
 			generator.pushLine('}')
@@ -269,7 +269,7 @@ export class Golang implements Language {
 
 			this.#generateDocComment(generator, field.description)
 			if (valueEnumName) {
-				generator.pushIn(`func (s *${structName}) ${methodName}(${paramName} interface{}) *${structName} `, generator => {
+				generator.pushIn(`func (s *${structName}) ${methodName}(${paramName} any) *${structName} `, generator => {
 					generator.pushLine(`s.${goFieldName} = ${valueEnumName}From(${paramName})`)
 					generator.pushLine('return s')
 				})
@@ -300,8 +300,8 @@ export class Golang implements Language {
 
 		// Add serialize method
 		this.#generateDocComment(generator, `Serializes the ${structName} to a map for JSON encoding`)
-		generator.pushIn(`func (s *${structName}) Serialize() map[string]interface{} `, generator => {
-			generator.pushLine('result := make(map[string]interface{})')
+		generator.pushIn(`func (s *${structName}) Serialize() map[string]any `, generator => {
+			generator.pushLine('result := make(map[string]any)')
 			generator.pushLine()
 
 			for (const [fieldName, field] of Object.entries(struct.fields)) {
@@ -327,12 +327,12 @@ export class Golang implements Language {
 
 		// Add static deserialize method
 		this.#generateDocComment(generator, `Deserializes a map into a ${structName}`)
-		generator.pushIn(`func ${structName}Deserialize(value interface{}, path string) (*${structName}, error) `, generator => {
+		generator.pushIn(`func ${structName}Deserialize(value any, path string) (*${structName}, error) `, generator => {
 			generator.pushLine('if path == "" {')
 			generator.pushLine('\tpath = "#"')
 			generator.pushLine('}')
 			generator.pushLine(`baseErrorMessage := fmt.Sprintf("failed to deserialize into '${name}' at '%s'", path)`)
-			generator.pushLine('obj, ok := value.(map[string]interface{})')
+			generator.pushLine('obj, ok := value.(map[string]any)')
 			generator.pushLine('if !ok {')
 			generator.pushLine('\treturn nil, fmt.Errorf("%s: value is not an object", baseErrorMessage)')
 			generator.pushLine('}')
@@ -422,8 +422,8 @@ export class Golang implements Language {
 		if (type.kind === 'ref') return `${valueExpr}.Serialize()`
 		if (type.kind === 'list') {
 			// For Go, we need to create a slice and serialize each element
-			return `func() []interface{} {
-				result := make([]interface{}, len(${valueExpr}))
+			return `func() []any {
+				result := make([]any, len(${valueExpr}))
 				for i, v := range ${valueExpr} {
 					result[i] = ${this.#buildSerializer(type.of, 'v')}
 				}
@@ -441,7 +441,7 @@ export class Golang implements Language {
 		if (type.kind === 'ref') return `${pascalCase(type.name)}Deserialize(${valueExpr}, ${pathExpr})`
 		if (type.kind === 'list') {
 			const itemDeserializer = this.#buildDeserializer(type.of, 'item', 'itemPath')
-			return `deserializeList(${valueExpr}, ${pathExpr}, func(item interface{}, itemPath string) (interface{}, error) {
+			return `deserializeList(${valueExpr}, ${pathExpr}, func(item any, itemPath string) (any, error) {
 				return ${itemDeserializer}
 			})`
 		}

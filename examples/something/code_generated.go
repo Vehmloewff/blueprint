@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func deserializeString(value interface{}, path string) (string, error) {
+func deserializeString(value any, path string) (string, error) {
 	str, ok := value.(string)
 	if !ok {
 		return "", fmt.Errorf("failed to deserialize into string at %s: value is not a string", path)
@@ -12,7 +12,7 @@ func deserializeString(value interface{}, path string) (string, error) {
 	return str, nil
 }
 
-func deserializeNumber(value interface{}, path string) (float64, error) {
+func deserializeNumber(value any, path string) (float64, error) {
 	num, ok := value.(float64)
 	if !ok {
 		return 0, fmt.Errorf("failed to deserialize into number at %s: value is not a number", path)
@@ -55,8 +55,8 @@ func (s *SomeStruct) IntoSomeEnum() *SomeEnum {
 }
 
 // Serializes the SomeStruct to a map for JSON encoding
-func (s *SomeStruct) Serialize() map[string]interface{} {
-	result := make(map[string]interface{})
+func (s *SomeStruct) Serialize() map[string]any {
+	result := make(map[string]any)
 
 	result["foo"] = s.Foo
 	if s.Bar != nil {
@@ -67,12 +67,12 @@ func (s *SomeStruct) Serialize() map[string]interface{} {
 }
 
 // Deserializes a map into a SomeStruct
-func SomeStructDeserialize(value interface{}, path string) (*SomeStruct, error) {
+func SomeStructDeserialize(value any, path string) (*SomeStruct, error) {
 	if path == "" {
 		path = "#"
 	}
 	baseErrorMessage := fmt.Sprintf("failed to deserialize into 'some_struct' at '%s'", path)
-	obj, ok := value.(map[string]interface{})
+	obj, ok := value.(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("%s: value is not an object", baseErrorMessage)
 	}
@@ -114,7 +114,7 @@ type SomeEnum struct {
 }
 
 // Creates a SomeEnum from an IntoSomeEnum or returns the existing SomeEnum
-func SomeEnumFrom(thing interface{}) *SomeEnum {
+func SomeEnumFrom(thing any) *SomeEnum {
 	if enum, ok := thing.(*SomeEnum); ok {
 		return enum
 	}
@@ -139,8 +139,8 @@ func SomeEnumOption2() *SomeEnum {
 }
 
 // Serializes the SomeEnum to a map for JSON encoding
-func (e *SomeEnum) Serialize() map[string]interface{} {
-	result := make(map[string]interface{})
+func (e *SomeEnum) Serialize() map[string]any {
+	result := make(map[string]any)
 
 	if e.Option1 != nil {
 		result["option1"] = e.Option1.Serialize()
@@ -153,9 +153,9 @@ func (e *SomeEnum) Serialize() map[string]interface{} {
 }
 
 // Deserializes a map into a SomeEnum
-func SomeEnumDeserialize(value interface{}, path string) (*SomeEnum, error) {
+func SomeEnumDeserialize(value any, path string) (*SomeEnum, error) {
 	baseErrorMessage := fmt.Sprintf("failed to deserialize into 'some_enum' at '%s'", path)
-	obj, ok := value.(map[string]interface{})
+	obj, ok := value.(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("%s: value is not an object", baseErrorMessage)
 	}
@@ -199,14 +199,14 @@ func (s *MainStruct) WithTitle(title string) *MainStruct {
 }
 
 // This is the title
-func (s *MainStruct) WithSomething(something interface{}) *MainStruct {
+func (s *MainStruct) WithSomething(something any) *MainStruct {
 	s.Something = SomeEnumFrom(something)
 	return s
 }
 
 // Serializes the MainStruct to a map for JSON encoding
-func (s *MainStruct) Serialize() map[string]interface{} {
-	result := make(map[string]interface{})
+func (s *MainStruct) Serialize() map[string]any {
+	result := make(map[string]any)
 
 	if s.Title != nil {
 		result["title"] = *s.Title
@@ -219,12 +219,12 @@ func (s *MainStruct) Serialize() map[string]interface{} {
 }
 
 // Deserializes a map into a MainStruct
-func MainStructDeserialize(value interface{}, path string) (*MainStruct, error) {
+func MainStructDeserialize(value any, path string) (*MainStruct, error) {
 	if path == "" {
 		path = "#"
 	}
 	baseErrorMessage := fmt.Sprintf("failed to deserialize into 'main_struct' at '%s'", path)
-	obj, ok := value.(map[string]interface{})
+	obj, ok := value.(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("%s: value is not an object", baseErrorMessage)
 	}

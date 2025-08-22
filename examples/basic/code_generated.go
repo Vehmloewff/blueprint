@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func deserializeString(value interface{}, path string) (string, error) {
+func deserializeString(value any, path string) (string, error) {
 	str, ok := value.(string)
 	if !ok {
 		return "", fmt.Errorf("failed to deserialize into string at %s: value is not a string", path)
@@ -28,7 +28,7 @@ type MessageIntent struct {
 }
 
 // Creates a MessageIntent from an IntoMessageIntent or returns the existing MessageIntent
-func MessageIntentFrom(thing interface{}) *MessageIntent {
+func MessageIntentFrom(thing any) *MessageIntent {
 	if enum, ok := thing.(*MessageIntent); ok {
 		return enum
 	}
@@ -53,8 +53,8 @@ func MessageIntentDelete() *MessageIntent {
 }
 
 // Serializes the MessageIntent to a map for JSON encoding
-func (e *MessageIntent) Serialize() map[string]interface{} {
-	result := make(map[string]interface{})
+func (e *MessageIntent) Serialize() map[string]any {
+	result := make(map[string]any)
 
 	if e.Create != nil {
 		result["create"] = struct{}{}
@@ -67,9 +67,9 @@ func (e *MessageIntent) Serialize() map[string]interface{} {
 }
 
 // Deserializes a map into a MessageIntent
-func MessageIntentDeserialize(value interface{}, path string) (*MessageIntent, error) {
+func MessageIntentDeserialize(value any, path string) (*MessageIntent, error) {
 	baseErrorMessage := fmt.Sprintf("failed to deserialize into 'message_intent' at '%s'", path)
-	obj, ok := value.(map[string]interface{})
+	obj, ok := value.(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("%s: value is not an object", baseErrorMessage)
 	}
@@ -111,14 +111,14 @@ func (s *Message) WithId(id string) *Message {
 }
 
 // The intention of the message. Should be present unless it is a ping.
-func (s *Message) WithIntent(intent interface{}) *Message {
+func (s *Message) WithIntent(intent any) *Message {
 	s.Intent = MessageIntentFrom(intent)
 	return s
 }
 
 // Serializes the Message to a map for JSON encoding
-func (s *Message) Serialize() map[string]interface{} {
-	result := make(map[string]interface{})
+func (s *Message) Serialize() map[string]any {
+	result := make(map[string]any)
 
 	result["id"] = s.Id
 	if s.Intent != nil {
@@ -129,12 +129,12 @@ func (s *Message) Serialize() map[string]interface{} {
 }
 
 // Deserializes a map into a Message
-func MessageDeserialize(value interface{}, path string) (*Message, error) {
+func MessageDeserialize(value any, path string) (*Message, error) {
 	if path == "" {
 		path = "#"
 	}
 	baseErrorMessage := fmt.Sprintf("failed to deserialize into 'message' at '%s'", path)
-	obj, ok := value.(map[string]interface{})
+	obj, ok := value.(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("%s: value is not an object", baseErrorMessage)
 	}
