@@ -3,6 +3,7 @@ import type { CheckedItem, Language, TypeAnalyzer, TypeInstance } from './langua
 import type { BooleanDef, EnumBody, ListDef, NumberBehavior, NumberDef, RefDef, StringDef, StructBody, TypeDef } from './type_def'
 import { Typescript } from './typescript'
 import { Golang } from './golang'
+import { Rust } from './rust'
 
 type RefItem = Struct | Enum
 type Struct = { kind: 'struct' } & StructBody
@@ -66,6 +67,10 @@ export class Blueprint {
 
 	generateGo() {
 		return this.generate(new Golang(new BlueprintAnalyzer(this.#items)))
+	}
+
+	generateRust() {
+		return this.generate(new Rust(new BlueprintAnalyzer(this.#items)))
 	}
 }
 

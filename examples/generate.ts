@@ -11,4 +11,5 @@ for (const example of await readdir('examples')) {
 
 	await Bun.file(`examples/${example}/code_generated.ts`).write(definition.generateTypescript())
 	await Bun.file(`examples/${example}/code_generated.go`).write(definition.generateGo())
+	await Bun.file(`examples/${example}/code_generated.rs`).write(definition.generateRust())
 }

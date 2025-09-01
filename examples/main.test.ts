@@ -23,5 +23,12 @@ describe('examples', async () => {
 
 			expect(go).toEqual(expectedGo)
 		})
+
+		it(`${example} [rust]`, async () => {
+			const rust = definition.generateRust()
+			const expectedRust = await Bun.file(`examples/${example}/code_generated.rs`).text()
+
+			expect(rust).toEqual(expectedRust)
+		})
 	}
 })
