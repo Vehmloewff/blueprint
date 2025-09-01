@@ -1,4 +1,4 @@
-import { pascalCase, camelCase, snakeCase } from 'change-case'
+import { pascalCase, snakeCase } from 'change-case'
 import { Generator } from './generator'
 import type { Language, TypeAnalyzer } from './language'
 import type { EnumBody, StructBody, TypeDef } from './type_def'
@@ -12,19 +12,11 @@ export class Rust implements Language {
 
 	generateHeader(generator: Generator): void {
 		generator.pushLine('use serde::{Deserialize, Serialize};')
-		generator.pushLine('use std::collections::HashMap;')
 		generator.pushLine()
 	}
 
 	generateEnum(generator: Generator, name: string, e: EnumBody): void {
 		const enumName = pascalCase(name)
-
-		// Generate trait for things that can convert into this enum
-		this.#generateDocComment(generator, `Trait for types that can convert into ${enumName}`)
-		generator.pushIn(`pub trait Into${enumName} `, generator => {
-			generator.pushLine(`fn into_${snakeCase(name)}(self) -> ${enumName};`)
-		})
-		generator.pushLine()
 
 		// Generate the main enum
 		this.#generateDocComment(generator, e.description)
@@ -48,12 +40,6 @@ export class Rust implements Language {
 
 		// Generate implementation block
 		generator.pushIn(`impl ${enumName} `, generator => {
-			// Add from method for trait objects
-			generator.pushIn(`pub fn from<T: Into${enumName}>(thing: T) -> Self `, generator => {
-				generator.pushLine('thing.into_' + snakeCase(name) + '()')
-			})
-			generator.pushLine()
-
 			// Add variant constructor methods
 			for (const [variantKey, variant] of Object.entries(e.variants)) {
 				const variantName = pascalCase(variantKey)
@@ -133,7 +119,7 @@ export class Rust implements Language {
 				const rustFieldName = snakeCase(fieldName)
 				const valueEnumName =
 					field.type.kind === 'ref' && this.#analyzer.checkItem(field.type.name) === 'enum' ? pascalCase(field.type.name) : null
-				const typeStr = valueEnumName ? `impl Into${valueEnumName}` : this.#buildType(field.type)
+				const typeStr = valueEnumName ? `impl Into<${valueEnumName}>` : this.#buildType(field.type)
 
 				const methodName = `with_${snakeCase(fieldName)}`
 
@@ -141,9 +127,9 @@ export class Rust implements Language {
 				generator.pushIn(`pub fn ${methodName}(mut self, ${rustFieldName}: ${typeStr}) -> Self `, generator => {
 					if (valueEnumName) {
 						if (field.required) {
-							generator.pushLine(`self.${rustFieldName} = ${valueEnumName}::from(${rustFieldName});`)
+							generator.pushLine(`self.${rustFieldName} = ${rustFieldName}.into();`)
 						} else {
-							generator.pushLine(`self.${rustFieldName} = Some(${valueEnumName}::from(${rustFieldName}));`)
+							generator.pushLine(`self.${rustFieldName} = Some(${rustFieldName}.into());`)
 						}
 					} else {
 						if (field.required) {
@@ -164,8 +150,8 @@ export class Rust implements Language {
 			const enumName = pascalCase(instance.enumName)
 			const methodName = snakeCase(instance.variantName)
 
-			generator.pushIn(`impl Into${enumName} for ${structName} `, generator => {
-				generator.pushIn(`fn into_${snakeCase(instance.enumName)}(self) -> ${enumName} `, generator => {
+			generator.pushIn(`impl Into<${enumName}> for ${structName} `, generator => {
+				generator.pushIn(`fn into(self) -> ${enumName} `, generator => {
 					generator.pushLine(`${enumName}::${methodName}(self)`)
 				})
 			})

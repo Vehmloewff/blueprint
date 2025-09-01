@@ -1,10 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-
-/// Trait for types that can convert into MessageIntent
-pub trait IntoMessageIntent {
-    fn into_message_intent(self) -> MessageIntent;
-}
 
 /// Message intents are the primary way to categorize messages.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,10 +13,6 @@ pub enum MessageIntent {
 }
 
 impl MessageIntent {
-    pub fn from<T: IntoMessageIntent>(thing: T) -> Self {
-        thing.into_message_intent()
-    }
-
     /// Create a new entity
     pub fn create() -> Self {
         MessageIntent::Create
@@ -59,8 +49,8 @@ impl Message {
     }
 
     /// The intention of the message. Should be present unless it is a ping.
-    pub fn with_intent(mut self, intent: impl IntoMessageIntent) -> Self {
-        self.intent = Some(MessageIntent::from(intent));
+    pub fn with_intent(mut self, intent: impl Into<MessageIntent>) -> Self {
+        self.intent = Some(intent.into());
         self
     }
 }
