@@ -57,19 +57,6 @@ pub enum SomeEnum {
 	Option2,
 }
 
-impl SomeEnum {
-	/// This is option 1
-	pub fn option1(value: SomeStruct) -> Self {
-		SomeEnum::Option1(value)
-	}
-
-	/// This is option 2
-	pub fn option2() -> Self {
-		SomeEnum::Option2
-	}
-
-}
-
 
 
 /// This is the main struct

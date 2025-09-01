@@ -37,28 +37,6 @@ export class Rust implements Language {
 			}
 		})
 		generator.pushLine()
-
-		// Generate implementation block
-		generator.pushIn(`impl ${enumName} `, generator => {
-			// Add variant constructor methods
-			for (const [variantKey, variant] of Object.entries(e.variants)) {
-				const variantName = pascalCase(variantKey)
-				const methodName = snakeCase(variantKey)
-
-				this.#generateDocComment(generator, variant.description)
-				if (variant.type) {
-					generator.pushIn(`pub fn ${methodName}(value: ${this.#buildType(variant.type)}) -> Self `, generator => {
-						generator.pushLine(`${enumName}::${variantName}(value)`)
-					})
-				} else {
-					generator.pushIn(`pub fn ${methodName}() -> Self `, generator => {
-						generator.pushLine(`${enumName}::${variantName}`)
-					})
-				}
-				generator.pushLine()
-			}
-		})
-		generator.pushLine()
 	}
 
 	generateStruct(generator: Generator, name: string, struct: StructBody): void {
