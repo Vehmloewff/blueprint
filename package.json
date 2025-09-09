@@ -1,16 +1,30 @@
 {
-	"name": "typesmith",
+	"name": "@emooring/blueprint",
+	"version": "1.0.0",
+	"files": [
+		"dist"
+	],
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		}
+	},
 	"scripts": {
 		"examples": "bun run examples/generate.ts",
-		"test": "bun test"
+		"test": "bun test",
+		"prepack": "bun run build.ts"
 	},
 	"devDependencies": {
-		"@types/bun": "latest"
-	},
-	"peerDependencies": {
+		"@types/bun": "latest",
+		"bun-plugin-dts": "^0.3.0",
 		"typescript": "^5"
 	},
 	"dependencies": {
 		"change-case": "^5.4.4"
+	},
+	"peerDependencies": {},
+	"publishConfig": {
+		"access": "public"
 	}
 }
