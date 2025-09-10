@@ -87,12 +87,13 @@ export class Golang implements Language {
 		generator.pushLine()
 
 		// Generate the main enum struct
-		this.#generateDocComment(generator, e.description)
+		if (e.description) this.#generateDocComment(generator, e.description)
 		generator.pushIn(`type ${enumName} struct `, generator => {
 			// Add variant fields
 			for (const [variantKey, variant] of Object.entries(e.variants)) {
 				const fieldName = pascalCase(variantKey)
-				this.#generateDocComment(generator, variant.description)
+				if (variant.description) this.#generateDocComment(generator, variant.description)
+
 				if (variant.type) {
 					generator.pushLine(`${fieldName} *${this.#buildType(variant.type)} \`json:"${variantKey},omitempty"\``)
 				} else {
@@ -118,7 +119,7 @@ export class Golang implements Language {
 		// Add variant constructor methods
 		for (const [variantKey, variant] of Object.entries(e.variants)) {
 			const methodName = `${enumName}${pascalCase(variantKey)}`
-			this.#generateDocComment(generator, variant.description)
+			if (variant.description) this.#generateDocComment(generator, variant.description)
 
 			if (variant.type) {
 				generator.pushIn(`func ${methodName}(value ${this.#buildType(variant.type)}) *${enumName} `, generator => {
@@ -218,7 +219,7 @@ export class Golang implements Language {
 		const enumReferences = this.#analyzer.getInstances({ kind: 'ref', name }).filter(instance => instance.kind === 'enum')
 
 		// Generate the main struct
-		this.#generateDocComment(generator, struct.description)
+		if (struct.description) this.#generateDocComment(generator, struct.description)
 		generator.pushIn(`type ${structName} struct `, generator => {
 			// Add field declarations
 			for (const [fieldName, field] of Object.entries(struct.fields)) {
@@ -227,7 +228,7 @@ export class Golang implements Language {
 				const pointer = field.required ? '' : '*'
 				const omitempty = field.required ? '' : ',omitempty'
 
-				this.#generateDocComment(generator, field.description)
+				if (field.description) this.#generateDocComment(generator, field.description)
 				generator.pushLine(`${goFieldName} ${pointer}${typeStr} \`json:"${fieldName}${omitempty}"\``)
 			}
 		})
@@ -267,7 +268,7 @@ export class Golang implements Language {
 
 			const methodName = `With${pascalCase(fieldName)}`
 
-			this.#generateDocComment(generator, field.description)
+			if (field.description) this.#generateDocComment(generator, field.description)
 			if (valueEnumName) {
 				generator.pushIn(`func (s *${structName}) ${methodName}(${paramName} any) *${structName} `, generator => {
 					generator.pushLine(`s.${goFieldName} = ${valueEnumName}From(${paramName})`)

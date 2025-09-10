@@ -19,14 +19,14 @@ export class Rust implements Language {
 		const enumName = pascalCase(name)
 
 		// Generate the main enum
-		this.#generateDocComment(generator, e.description)
+		if (e.description) this.#generateDocComment(generator, e.description)
 		generator.pushLine('#[derive(Debug, Clone, Serialize, Deserialize)]')
 		generator.pushLine('#[serde(untagged)]')
 		generator.pushIn(`pub enum ${enumName} `, generator => {
 			// Add variant definitions
 			for (const [variantKey, variant] of Object.entries(e.variants)) {
 				const variantName = pascalCase(variantKey)
-				this.#generateDocComment(generator, variant.description)
+				if (variant.description) this.#generateDocComment(generator, variant.description)
 				if (variant.type) {
 					generator.pushLine(`#[serde(rename = "${variantKey}")]`)
 					generator.pushLine(`${variantName}(${this.#buildType(variant.type)}),`)
@@ -46,7 +46,7 @@ export class Rust implements Language {
 		const enumReferences = this.#analyzer.getInstances({ kind: 'ref', name }).filter(instance => instance.kind === 'enum')
 
 		// Generate the main struct
-		this.#generateDocComment(generator, struct.description)
+		if (struct.description) this.#generateDocComment(generator, struct.description)
 		generator.pushLine('#[derive(Debug, Clone, Serialize, Deserialize)]')
 		generator.pushIn(`pub struct ${structName} `, generator => {
 			// Add field declarations
@@ -54,7 +54,7 @@ export class Rust implements Language {
 				const rustFieldName = snakeCase(fieldName)
 				const typeStr = field.required ? this.#buildType(field.type) : `Option<${this.#buildType(field.type)}>`
 
-				this.#generateDocComment(generator, field.description)
+				if (field.description) this.#generateDocComment(generator, field.description)
 				generator.pushLine(`#[serde(rename = "${fieldName}")]`)
 				if (!field.required) {
 					generator.pushLine('#[serde(skip_serializing_if = "Option::is_none")]')
@@ -72,7 +72,7 @@ export class Rust implements Language {
 					.map(([fieldName, field]) => `${snakeCase(fieldName)}: ${this.#buildType(field.type)}`)
 					.join(', ')
 
-				this.#generateDocComment(generator, struct.description)
+				if (struct.description) this.#generateDocComment(generator, struct.description)
 				generator.pushIn(`pub fn new(${constructorParams}) -> Self `, generator => {
 					generator.pushLine(`Self {`)
 					for (const [fieldName] of requiredFields) {
@@ -101,7 +101,7 @@ export class Rust implements Language {
 
 				const methodName = `with_${snakeCase(fieldName)}`
 
-				this.#generateDocComment(generator, field.description)
+				if (field.description) this.#generateDocComment(generator, field.description)
 				generator.pushIn(`pub fn ${methodName}(mut self, ${rustFieldName}: ${typeStr}) -> Self `, generator => {
 					if (valueEnumName) {
 						if (field.required) {
