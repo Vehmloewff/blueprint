@@ -11,7 +11,7 @@ Generate Typescript, Go, or Rust structure builders from a single definition.
 ```ts
 const b = new Blueprint()
 
-b.struct('message', {
+b.struct('message', () => {
 	description: 'A message that can be sent between processes',
 	fields: {
 		id: { description: 'The id of the message that can be sent', type: b.string(), required: true },

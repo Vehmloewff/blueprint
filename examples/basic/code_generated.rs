@@ -2,20 +2,6 @@ use serde::{Deserialize, Serialize};
 
 
 
-/// Message intents are the primary way to categorize messages.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum MessageIntent {
-	/// Create a new entity
-	#[serde(rename = "create")]
-	Create,
-	/// Delete an entity
-	#[serde(rename = "delete")]
-	Delete,
-}
-
-
-
 /// A message that can be sent between processes
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
@@ -49,5 +35,19 @@ impl Message {
 		self
 	}
 
+}
+
+
+
+/// Message intents are the primary way to categorize messages.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum MessageIntent {
+	/// Create a new entity
+	#[serde(rename = "create")]
+	Create,
+	/// Delete an entity
+	#[serde(rename = "delete")]
+	Delete,
 }
 

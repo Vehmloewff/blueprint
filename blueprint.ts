@@ -9,7 +9,7 @@ type RefItem = Struct | Enum
 type Struct = { kind: 'struct' } & StructBody
 type Enum = { kind: 'enum' } & EnumBody
 
-type ItemMap = Map<string, RefItem>
+type ItemMap = Map<string, () => RefItem>
 
 export class Blueprint {
 	#items: ItemMap = new Map()
@@ -30,14 +30,14 @@ export class Blueprint {
 		return { kind: 'list', of }
 	}
 
-	struct(name: string, body: StructBody): RefDef {
-		this.#items.set(name, { kind: 'struct', ...body })
+	struct(name: string, body: () => StructBody): RefDef {
+		this.#items.set(name, () => ({ kind: 'struct', ...body() }))
 
 		return { kind: 'ref', name }
 	}
 
-	enum(name: string, e: EnumBody): RefDef {
-		this.#items.set(name, { kind: 'enum', ...e })
+	enum(name: string, body: () => EnumBody): RefDef {
+		this.#items.set(name, () => ({ kind: 'enum', ...body() }))
 
 		return { kind: 'ref', name }
 	}
@@ -50,7 +50,8 @@ export class Blueprint {
 			language.generateHeader(generator)
 		}
 
-		for (const [name, item] of this.#items.entries()) {
+		for (const [name, itemFn] of this.#items.entries()) {
+			const item = itemFn()
 			generator.pushLine()
 			generator.pushLine()
 
@@ -82,9 +83,10 @@ class BlueprintAnalyzer implements TypeAnalyzer {
 	}
 
 	checkItem(name: string): CheckedItem | null {
-		const item = this.#items.get(name)
+		const itemFn = this.#items.get(name)
+		if (!itemFn) return null
 
-		if (!item) return null
+		const item = itemFn()
 
 		return item.kind
 	}
@@ -92,7 +94,9 @@ class BlueprintAnalyzer implements TypeAnalyzer {
 	getInstances(type: TypeDef): TypeInstance[] {
 		const instances: TypeInstance[] = []
 
-		for (const [itemName, item] of this.#items) {
+		for (const [itemName, itemFn] of this.#items) {
+			const item = itemFn()
+
 			if (item.kind === 'enum') {
 				for (const [variantName, variant] of Object.entries(item.variants)) {
 					if (variant.type && this.#doesTypeMatch(variant.type, type)) {

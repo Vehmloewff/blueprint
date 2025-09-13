@@ -5,6 +5,66 @@ function deserializeString(value: unknown, path: string) {
 }
 
 
+/** A message that can be sent between processes */
+export class Message {
+	/** The id of the message that can be sent */
+	id: string
+	/** The intention of the message. Should be present unless it is a ping. */
+	intent?: MessageIntent
+
+	/**
+	 * A message that can be sent between processes
+	 * 
+	 *  - `id`: The id of the message that can be sent */
+	constructor(id: string) {
+		this.id = id
+	}
+
+	/**
+	 * A message that can be sent between processes
+	 * 
+	 *  - `id`: The id of the message that can be sent */
+	static new(id: string) {
+		return new this(id)
+	}
+
+	/** The id of the message that can be sent */
+	withId(id: string) {
+		this.id = id
+
+		return this
+	}
+
+	/** The intention of the message. Should be present unless it is a ping. */
+	withIntent(intent: IntoMessageIntent | MessageIntent) {
+		this.intent = MessageIntent.from(intent)
+
+		return this
+	}
+
+	serialize(): unknown {
+		const serialized: Record<string, unknown> = {}
+
+		if (this.id !== undefined) serialized.id = this.id
+		if (this.intent !== undefined) serialized.intent = this.intent.serialize()
+
+		return serialized
+	}
+
+	static deserialize(value: unknown, path: string = '#') {
+		const baseErrorMessage = `failed to deserialize into 'message' at '${path}'`
+		if (!value || typeof value !== 'object') throw new Error(`${baseErrorMessage}: value is not an object.`)
+
+		if (!('id' in value)) throw new Error(`${baseErrorMessage}: value does not contain required field 'id'.`)
+		const self = new this(deserializeString(value.id, `${path}/id`))
+
+		if ('intent' in value) self.intent = MessageIntent.deserialize(value.intent, `${path}/intent`)
+
+		return self
+	}
+}
+
+
 export interface IntoMessageIntent {
 	intoMessageIntent(): MessageIntent
 }
@@ -61,66 +121,6 @@ export class MessageIntent {
 			self.delete = {}
 		}
 		else throw new Error(`${baseErrorMessage}: value does not contain any recognized variants.`)
-
-		return self
-	}
-}
-
-
-/** A message that can be sent between processes */
-export class Message {
-	/** The id of the message that can be sent */
-	id: string
-	/** The intention of the message. Should be present unless it is a ping. */
-	intent?: MessageIntent
-
-	/**
-	 * A message that can be sent between processes
-	 * 
-	 *  - `id`: The id of the message that can be sent */
-	constructor(id: string) {
-		this.id = id
-	}
-
-	/**
-	 * A message that can be sent between processes
-	 * 
-	 *  - `id`: The id of the message that can be sent */
-	static new(id: string) {
-		return new this(id)
-	}
-
-	/** The id of the message that can be sent */
-	withId(id: string) {
-		this.id = id
-
-		return this
-	}
-
-	/** The intention of the message. Should be present unless it is a ping. */
-	withIntent(intent: IntoMessageIntent | MessageIntent) {
-		this.intent = MessageIntent.from(intent)
-
-		return this
-	}
-
-	serialize(): unknown {
-		const serialized: Record<string, unknown> = {}
-
-		if (this.id !== undefined) serialized.id = this.id
-		if (this.intent !== undefined) serialized.intent = this.intent.serialize()
-
-		return serialized
-	}
-
-	static deserialize(value: unknown, path: string = '#') {
-		const baseErrorMessage = `failed to deserialize into 'message' at '${path}'`
-		if (!value || typeof value !== 'object') throw new Error(`${baseErrorMessage}: value is not an object.`)
-
-		if (!('id' in value)) throw new Error(`${baseErrorMessage}: value does not contain required field 'id'.`)
-		const self = new this(deserializeString(value.id, `${path}/id`))
-
-		if ('intent' in value) self.intent = MessageIntent.deserialize(value.intent, `${path}/intent`)
 
 		return self
 	}

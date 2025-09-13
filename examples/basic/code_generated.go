@@ -14,6 +14,78 @@ func deserializeString(value any, path string) (string, error) {
 
 
 
+// A message that can be sent between processes
+type Message struct {
+	// The id of the message that can be sent
+	Id string `json:"id"`
+	// The intention of the message. Should be present unless it is a ping.
+	Intent *MessageIntent `json:"intent,omitempty"`
+}
+
+// Creates a new Message with required fields
+func NewMessage(id string) *Message {
+	return &Message{
+		Id: id,
+	}
+}
+
+// The id of the message that can be sent
+func (s *Message) WithId(id string) *Message {
+	s.Id = id
+	return s
+}
+
+// The intention of the message. Should be present unless it is a ping.
+func (s *Message) WithIntent(intent any) *Message {
+	s.Intent = MessageIntentFrom(intent)
+	return s
+}
+
+// Serializes the Message to a map for JSON encoding
+func (s *Message) Serialize() map[string]any {
+	result := make(map[string]any)
+
+	result["id"] = s.Id
+	if s.Intent != nil {
+		result["intent"] = s.Intent.Serialize()
+	}
+
+	return result
+}
+
+// Deserializes a map into a Message
+func MessageDeserialize(value any, path string) (*Message, error) {
+	if path == "" {
+		path = "#"
+	}
+	baseErrorMessage := fmt.Sprintf("failed to deserialize into 'message' at '%s'", path)
+	obj, ok := value.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("%s: value is not an object", baseErrorMessage)
+	}
+
+	if _, exists := obj["id"]; !exists {
+		return nil, fmt.Errorf("%s: value does not contain required field 'id'", baseErrorMessage)
+	}
+	idDeserialized, err := deserializeString(obj["id"], fmt.Sprintf("%s/id", path))
+	if err != nil {
+		return nil, err
+	}
+	result := NewMessage(idDeserialized)
+
+	if val, exists := obj["intent"]; exists {
+		deserialized, err := MessageIntentDeserialize(val, fmt.Sprintf("%s/intent", path))
+		if err != nil {
+			return nil, err
+		}
+		result.Intent = deserialized
+	}
+
+	return result, nil
+}
+
+
+
 // Interface for types that can convert into MessageIntent
 type IntoMessageIntent interface {
 	IntoMessageIntent() *MessageIntent
@@ -82,78 +154,6 @@ func MessageIntentDeserialize(value any, path string) (*MessageIntent, error) {
 		result.Delete = &struct{}{}
 	} else {
 		return nil, fmt.Errorf("%s: value does not contain any recognized variants", baseErrorMessage)
-	}
-
-	return result, nil
-}
-
-
-
-// A message that can be sent between processes
-type Message struct {
-	// The id of the message that can be sent
-	Id string `json:"id"`
-	// The intention of the message. Should be present unless it is a ping.
-	Intent *MessageIntent `json:"intent,omitempty"`
-}
-
-// Creates a new Message with required fields
-func NewMessage(id string) *Message {
-	return &Message{
-		Id: id,
-	}
-}
-
-// The id of the message that can be sent
-func (s *Message) WithId(id string) *Message {
-	s.Id = id
-	return s
-}
-
-// The intention of the message. Should be present unless it is a ping.
-func (s *Message) WithIntent(intent any) *Message {
-	s.Intent = MessageIntentFrom(intent)
-	return s
-}
-
-// Serializes the Message to a map for JSON encoding
-func (s *Message) Serialize() map[string]any {
-	result := make(map[string]any)
-
-	result["id"] = s.Id
-	if s.Intent != nil {
-		result["intent"] = s.Intent.Serialize()
-	}
-
-	return result
-}
-
-// Deserializes a map into a Message
-func MessageDeserialize(value any, path string) (*Message, error) {
-	if path == "" {
-		path = "#"
-	}
-	baseErrorMessage := fmt.Sprintf("failed to deserialize into 'message' at '%s'", path)
-	obj, ok := value.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("%s: value is not an object", baseErrorMessage)
-	}
-
-	if _, exists := obj["id"]; !exists {
-		return nil, fmt.Errorf("%s: value does not contain required field 'id'", baseErrorMessage)
-	}
-	idDeserialized, err := deserializeString(obj["id"], fmt.Sprintf("%s/id", path))
-	if err != nil {
-		return nil, err
-	}
-	result := NewMessage(idDeserialized)
-
-	if val, exists := obj["intent"]; exists {
-		deserialized, err := MessageIntentDeserialize(val, fmt.Sprintf("%s/intent", path))
-		if err != nil {
-			return nil, err
-		}
-		result.Intent = deserialized
 	}
 
 	return result, nil
