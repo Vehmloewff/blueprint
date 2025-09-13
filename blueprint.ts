@@ -30,14 +30,16 @@ export class Blueprint {
 		return { kind: 'list', of }
 	}
 
-	struct(name: string, body: () => StructBody): RefDef {
-		this.#items.set(name, () => ({ kind: 'struct', ...body() }))
+	struct(name: string, body: StructBody | (() => StructBody)): RefDef {
+		const bodyFn = typeof body === 'function' ? body : () => body
+		this.#items.set(name, () => ({ kind: 'struct', ...bodyFn() }))
 
 		return { kind: 'ref', name }
 	}
 
-	enum(name: string, body: () => EnumBody): RefDef {
-		this.#items.set(name, () => ({ kind: 'enum', ...body() }))
+	enum(name: string, body: EnumBody | (() => EnumBody)): RefDef {
+		const bodyFn = typeof body === 'function' ? body : () => body
+		this.#items.set(name, () => ({ kind: 'enum', ...bodyFn() }))
 
 		return { kind: 'ref', name }
 	}
