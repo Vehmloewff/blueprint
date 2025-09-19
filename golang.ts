@@ -446,6 +446,7 @@ export class Golang implements Language {
 				return ${itemDeserializer}
 			})`
 		}
+		if (type.kind === 'unknown') return valueExpr
 
 		throw new Error('Unknown type kind')
 	}
@@ -469,6 +470,7 @@ export class Golang implements Language {
 			return 'int' // default
 		}
 		if (type.kind === 'ref') return pascalCase(type.name)
+		if (type.kind === 'unknown') return 'any'
 
 		throw new Error('Unknown type kind')
 	}

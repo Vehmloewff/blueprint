@@ -186,6 +186,7 @@ export class Rust implements Language {
 			return 'f64'
 		}
 		if (type.kind === 'ref') return pascalCase(type.name)
+		if (type.kind === 'unknown') return 'serde_json::Value'
 
 		throw new Error('Unknown type kind')
 	}

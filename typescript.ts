@@ -333,6 +333,7 @@ export class Typescript implements Language {
 			const itemDeserializer = this.#buildDeserializer(type.of, 'item', 'itemPath')
 			return `deserializeList(${valueExpr}, ${pathExpr}, (item, itemPath) => ${itemDeserializer})`
 		}
+		if (type.kind === 'unknown') return valueExpr
 
 		throw new Error('Unknown type kind')
 	}
@@ -343,6 +344,7 @@ export class Typescript implements Language {
 		if (type.kind === 'list') return `${this.#buildType(type.of)}[]`
 		if (type.kind === 'number') return 'number'
 		if (type.kind === 'ref') return pascalCase(type.name)
+		if (type.kind === 'unknown') return 'unknown'
 
 		throw new Error('Unknown type kind')
 	}
