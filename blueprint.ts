@@ -1,6 +1,17 @@
 import { Generator, StringBuilder } from './generator'
 import type { CheckedItem, Language, TypeAnalyzer, TypeInstance } from './language'
-import type { BooleanDef, EnumBody, ListDef, NumberBehavior, NumberDef, RefDef, StringDef, StructBody, TypeDef } from './type_def'
+import type {
+	BooleanDef,
+	EnumBody,
+	ListDef,
+	NumberBehavior,
+	NumberDef,
+	RefDef,
+	StringDef,
+	StructBody,
+	TypeDef,
+	UnknownDef,
+} from './type_def'
 import { Typescript } from './typescript'
 import { Golang } from './golang'
 import { Rust } from './rust'
@@ -24,6 +35,10 @@ export class Blueprint {
 
 	boolean(): BooleanDef {
 		return { kind: 'boolean' }
+	}
+
+	unknown(): UnknownDef {
+		return { kind: 'unknown' }
 	}
 
 	list(of: TypeDef): ListDef {
